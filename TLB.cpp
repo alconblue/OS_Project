@@ -19,7 +19,7 @@ Frames are allocated continously
 */
 
 #define pageSize 4
-#define totalTLBEntries 128
+
 int totalPageTableEntry;
 struct entry
 {
@@ -27,10 +27,10 @@ struct entry
 };
 
 vector <pair<int, pair<int, int> > >process;
-
-struct entry TLB[128],pageTable[1000000];
+vector<pair<int, int> >request;
+struct entry TLB[256],pageTable[1000000];
 //Page Table Size = 4GB/4KB = 1000000
-int TLBCount[128];
+int TLBCount[256],totalTLBEntries;
 
 void createPageTable(int noOfProcesses)
 {
@@ -129,9 +129,43 @@ int getRequest(int processNum,int reqMemory,int noOfProcesses)
 	
 }
 
+void simulate_TLB(int tTS,int nP,int nR,int mMAT,int TLBAT)
+{
+	int noOfMiss=0,noOfHits=0,noOfProcesses,noOfRequests,result,mainMemAccessTime,TLBAccessTime;
+	double hitPercentage,missPercentage,effectiveMemoryAccessTime;
+	totalTLBEntries = tTS;
+	noOfProcesses = nP;
+	noOfRequests = nR;
+	mainMemAccessTime = mMAT;
+	TLBAccessTime = TLBAT;
+	for(int i=0;i<noOfRequests;i++)
+	{
+		printf("\n");
+		result = getRequest(request[i].first,request[i].second,noOfProcesses);
+		if(result==-1){
+			printf("TRAP\n");
+		}
+		else if(result==0){
+			noOfMiss++;
+		}
+		else if(result==1){
+			noOfHits++;
+		}
+		printf("\n");
+	}
+
+	hitPercentage = (noOfHits/noOfRequests);
+	missPercentage = (noOfMiss/noOfRequests);
+	effectiveMemoryAccessTime = ( (hitPercentage*TLBAccessTime) + (missPercentage*mainMemAccessTime) );
+
+	printf("Total access time with TLB = %d\n",((mainMemAccessTime*noOfMiss) + (TLBAccessTime*noOfHits) ) );
+	printf("Total access time without TLB = %d\n",(mainMemAccessTime*noOfRequests));
+	printf("Effective Memory Access Time = %lf\n",effectiveMemoryAccessTime);
+}
+
 int main()
 {
-	int totalTLBSize,oneTLBEntrySize,mainMemAccessTime,TLBAccessTime,noOfHits=0,noOfMiss=0,noOfProcesses,type,sizeOfProcess;
+	int totalTLBSize,oneTLBEntrySize,mainMemAccessTime,TLBAccessTime,noOfProcesses,type,sizeOfProcess;
 
 	oneTLBEntrySize = (4+20+20+1+3);
 	totalTLBSize = (oneTLBEntrySize)*(totalTLBEntries);
@@ -162,21 +196,28 @@ int main()
 	{
 		scanf("%d%d",&processNum,&reqMemory);
 		//printf("Logical Address = %d\n",);
-		result = getRequest(processNum,reqMemory,noOfProcesses);
-		if(result==-1){
-			printf("TRAP\n");
-		}
-		else if(result==0){
-			noOfMiss++;
-		}
-		else if(result==1){
-			noOfHits++;
-		}
-	
+		request.push_back(make_pair(processNum,reqMemory));
 	}
 
-	printf("Total access time with TLB = %d\n",((mainMemAccessTime*noOfMiss) + (TLBAccessTime*noOfHits) ) );
-	printf("Total access time without TLB = %d\n",(mainMemAccessTime*noOfRequests));
+	simulate_TLB(128,noOfProcesses,noOfRequests,mainMemAccessTime,TLBAccessTime);
+	simulate_TLB(256,noOfProcesses,noOfRequests,mainMemAccessTime,TLBAccessTime);
+
+	// for(int i=0;i<noOfRequests;i++)
+	// {
+	// 	result = getRequest(processNum,reqMemory,noOfProcesses);
+	// 	if(result==-1){
+	// 		printf("TRAP\n");
+	// 	}
+	// 	else if(result==0){
+	// 		noOfMiss++;
+	// 	}
+	// 	else if(result==1){
+	// 		noOfHits++;
+	// 	}
+	// }
+
+	// printf("Total access time with TLB = %d\n",((mainMemAccessTime*noOfMiss) + (TLBAccessTime*noOfHits) ) );
+	// printf("Total access time without TLB = %d\n",(mainMemAccessTime*noOfRequests));
 
 	
 	return 0;
